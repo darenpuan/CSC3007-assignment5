@@ -1,0 +1,27 @@
+.psiValue{
+    color: white;
+    margin-top: -8px !important;
+}
+.legendColor{
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+
+
+span.category {
+    margin: 0;
+    position: absolute;
+    top: 40%;
+    left: 200%;
+    transform: translate(-50%, -50%);
+    width: 100px;
+    text-align: left;
+  }
+  
+  .legendRow {
+    position: relative;
+  }
+  

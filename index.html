@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.8.0/leaflet.css"
+    />
+    <link rel="stylesheet" href="./assets/index.css" />
+    <style>
+      #map {
+        width: 1000px;
+        height: 600px;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="main">
+      <div class="container">
+        <h1>
+          PSI Levels
+          <small class="timestamp"
+            >Last Updated at <span id="time"></span
+          ></small>
+        </h1>
+        <h3>National PSI Level: <span id="nationalLevel"></span></h3>
+        <div id="map"></div>
+      </div>
+    </section>
+  </body>
+  <script
+    src="https://code.jquery.com/jquery-3.6.0.min.js"
+    integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+    crossorigin="anonymous"
+  ></script>
+  <script src="https://momentjs.com/downloads/moment.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.8.0/leaflet.js"></script>
+
+  <script>
+    $(document).ready(function () {
+      $.getJSON("https://api.data.gov.sg/v1/environment/psi", function (data) {
+        var row = "";
+        var psi = data["items"][0].readings["psi_twenty_four_hourly"];
+        var timestamp = data["items"][0].update_timestamp;
+        var region = data.region_metadata;
+        var color = "";
+        console.log(region);
+        console.log(psi);
+
+        timestamp = moment(timestamp).format("DD MMM YYYY, hh:mm a");
+        console.log(timestamp);
+        document.getElementById("time").innerHTML = timestamp;
+
+        for (i = 0; i < region.length; i++) {
+          let regionName = region[i].name;
+          console.log(regionName);
+          console.log(psi[regionName]);
+          //PSI Air Quality Descriptor taken from https://haze.gov.sg/#chart-pm25
+          if (psi[regionName] < 51) {
+            // Healthy
+            color = "#479b02";
+          } else if (psi[regionName] < 101) {
+            // Moderate
+            color = "#006fa1";
+          } else if (psi[regionName] < 201) {
+            // Unhealthy
+            color = "#FFCE03";
+          } else if (psi[regionName] < 301) {
+            // Very Unhealthy
+            color = "#FFA800";
+          } else if (psi[regionName] > 300) {
+            // Hazardous
+            color = "#d60000";
+          }
+          document.getElementById("nationalLevel").innerHTML = psi["national"];
+          document.getElementById("nationalLevel").style.color = color;
+
+          var circle = L.circle(
+            [
+              region[i].label_location.latitude,
+              region[i].label_location.longitude,
+            ],
+            {
+              color: color,
+              fillColor: color,
+              fillOpacity: 0.5,
+              radius: 1500,
+            }
+          ).addTo(map);
+
+          var icon = L.marker(
+            [
+              region[i].label_location.latitude,
+              region[i].label_location.longitude,
+            ],
+            {
+              icon: L.divIcon({
+                className: "psiValue",
+                html: psi[regionName],
+              }),
+            }
+          );
+
+          icon.addTo(map);
+        }
+      });
+    });
+
+    let tiles = new L.tileLayer(
+      "https://maps-{s}.onemap.sg/v3/Default/{z}/{x}/{y}.png",
+      {
+        detectRetina: true,
+        maxZoom: 18,
+        minZoom: 11,
+        //Do not remove this attribution
+        attribution:
+          '<img src="https://docs.onemap.sg/maps/images/oneMap64-01.png" style="height:20px;width:20px;">' +
+          'New OneMap | Map data © contributors, <a href="http://SLA.gov.sg">Singapore Land Authority</a>',
+      }
+    );
+    let map = new L.Map("map", {
+      center: [1.347833, 103.809357],
+      zoom: 11,
+      maxBounds: L.latLngBounds(L.latLng(1.1, 103.5), L.latLng(1.5, 104.3)),
+    }).addLayer(tiles);
+
+    var legend = L.control({ position: "bottomleft" });
+    legend.onAdd = function (map) {
+      var div = L.DomUtil.create("div", "info legend");
+      (labels = ["<h3>Legend</h3>"]),
+        (legendCat = [
+          "Healthy",
+          "Moderate",
+          "Unhealthy",
+          "Very Unhealthy",
+          "Hazardous",
+        ]);
+
+      for (var i = 0; i < legendCat.length; i++) {
+        div.innerHTML += labels.push(
+          '<div class="legendRow"><i class="legendColor" style="background-color:' +
+            getLegendColor(legendCat[i]) +
+            '"></i> ' +
+            ('<span class="category">' + legendCat[i] + "</span>")
+        );
+      }
+      div.innerHTML = labels.join("</div>");
+      console.log(div.innerHTML);
+      return div;
+    };
+    legend.addTo(map);
+
+    function getLegendColor(d) {
+      return d == "Healthy"
+        ? "#479b02"
+        : d == "Moderate"
+        ? "#006fa1"
+        : d == "Unhealthy"
+        ? "#FFCE03"
+        : d == "Very Unhealthy"
+        ? "#FFA800"
+        : "#d60000";
+    }
+  </script>
+</html>
